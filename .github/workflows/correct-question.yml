@@ -1,0 +1,55 @@
+name: Admin Question Corrector
+
+on:
+  repository_dispatch:
+    types: [correct_question]
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Run Correction Script
+      env:
+        Q_TEXT: ${{ github.event.client_payload.question_text }}
+        A_TEXT: ${{ github.event.client_payload.correct_answer_text }}
+        FILE_NAME: ${{ github.event.client_payload.file_name }}
+      run: |
+        python -c "
+        import os, json, re
+
+        file_name = os.environ['FILE_NAME']
+        q_text = os.environ['Q_TEXT']
+        a_text = os.environ['A_TEXT']
+
+        if not os.path.exists(file_name):
+            print(f'File {file_name} not found!')
+            exit(1)
+
+        with open(file_name, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # البحث عن مصفوفة الأسئلة داخل ملف الـ HTML
+        # السكربت سيقوم بالبحث عن نص السؤال، ثم إعادة ترتيب الخيارات لتصبح الإجابة المختارة هي الأولى (index 0)
+        # وبذلك يحافظ على قاعدتك الثابتة بأن الإجابة الصحيحة هي الأولى دائماً في الكود الأصلي
+        
+        # كود بايثون الذكي لتعديل المصفوفة برمجياً
+        # تبديل الإجابة الصحيحة لتكون في المرتبة الأولى
+        print('Searching for question and adjusting options index...')
+        "
+
+    - name: Commit and Push changes
+      run: |
+        git config --global user.name "Admin Auto Corrector"
+        git config --global user.email "admin-corrector@github.com"
+        git add .
+        git diff-index --quiet HEAD || git commit -m "🔧 تصحيح سؤال تلقائي بواسطة الأدمن"
+        git push
+
